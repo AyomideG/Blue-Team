@@ -467,6 +467,10 @@ public class Session {
             return "bonus";
         } else if ((int) result[0] == -1) {
             gui.printGameLog(user.getUsername() + " is uncultured");
+            if (users[currentTurn] instanceof SkyCat)
+            {
+                nextTurn();
+            }
             return "profane";
         }
         return "Invalid";
@@ -585,21 +589,20 @@ public class Session {
         int wordMult = 1;
         int letterMult = 1;
         Multiplier mult = Multiplier.NONE;
-        for (int i = 0; i < move.getWordString().length(); i++) {
-
+        for (int i = 0; i < move.getWord().length; i++) {
             Space current = null;
             if (horizontal && (move.getStartX() + i) < boardLocal.length) {
                 mult = boardLocal[move.getStartX() + i][move.getStartY()].
                         getMultiplier();
                 current = boardLocal[move.getStartX() + i][move.getStartY()];
                 usedSpaces.add(current);
-            } else if(move.getStartY() + i < boardLocal.length){
+            } else if(!horizontal && move.getStartY() + i < boardLocal.length){
                 mult = boardLocal[move.getStartX()][move.getStartY() + i].
                         getMultiplier();
                 current = boardLocal[move.getStartX()][move.getStartY() + i];
                 usedSpaces.add(current);
             }
-            if (current != null && current.getUsed() == false) {
+            if (!current.getUsed()) {
                 switch (mult) {
                     case NONE:
                         letterMult = 1;
@@ -618,7 +621,10 @@ public class Session {
                         break;
                 }
             }
-            points += letterMult * move.getWord()[i].getValue();
+            else{
+                letterMult = 1;
+            }
+            points += letterMult * TileGenerator.getInstance().getTile(move.getWordString().charAt(i)).getValue();;
         }
         points *= wordMult;
         //calculating the total number of points from offshoot moves
@@ -628,10 +634,9 @@ public class Session {
                 if (aMove != null)
                     points += calculateMovePoints(aMove);
             }
-            for (Space space : usedSpaces) {
-                space.setUsed();
-            }
-
+        }
+        for (Space space : usedSpaces) {
+            space.setUsed();
         }
         return points;
     }
@@ -646,6 +651,11 @@ public class Session {
 
         //if skipped 4 times - game ended
         if(skippedTimes >= 4){
+			try {
+                gui.gameOver(users);
+                Thread.sleep(2000);
+            } catch (Exception e){
+            }
             System.out.println("Game Ended");
             restartGame();
             return;
@@ -741,7 +751,7 @@ public class Session {
                 {
                     // Check if its this players turn
                     if (((Player)users[turn]).getMacAddress().equals(mac)) {
-                        return "You!";
+                        return "You!"; // fyi - this gets used in main.js to check if its the current users turn
                     }
                     // Must be another player, give their username
                     return users[turn].getUsername();
@@ -750,7 +760,7 @@ public class Session {
                 // Its Skycat's turn
                 else
                 {
-                    return "Skycat";
+                    return  users[currentTurn].getUsername();
                 }
             }
         } catch (Exception e) {
